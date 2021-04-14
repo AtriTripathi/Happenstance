@@ -1,0 +1,94 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.atritripathi.happenstance"
+        minSdkVersion 21
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "NEWS_API_ACCESS_KEY", news_api_access_key)
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+        freeCompilerArgs += "-Xopt-in=androidx.paging.ExperimentalPagingApi"
+        freeCompilerArgs += "-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    }
+}
+
+dependencies {
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.material:material:1.3.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    // Glide
+    implementation "com.github.bumptech.glide:glide:4.12.0"
+    kapt 'com.github.bumptech.glide:compiler:4.12.0'
+
+    // Dagger Hilt
+    implementation "com.google.dagger:hilt-android:2.34-beta"
+    kapt "com.google.dagger:hilt-compiler:2.34-beta"
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2'
+
+    // Retrofit + Moshi
+    implementation "com.squareup.retrofit2:retrofit:2.9.0"
+    implementation "com.squareup.retrofit2:converter-moshi:2.9.0"
+    implementation "com.squareup.moshi:moshi-kotlin:1.11.0"
+
+    // OkHttp Logging Interceptor
+    implementation "com.squareup.okhttp3:logging-interceptor:4.9.0"
+
+    // Room
+    implementation "androidx.room:room-runtime:2.3.0-rc01"
+    kapt "androidx.room:room-compiler:2.3.0-rc01"
+    implementation "androidx.room:room-ktx:2.3.0-rc01"
+
+    // SwipeRefreshLayout
+    implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
+
+    // Paging 3
+    implementation "androidx.paging:paging-runtime-ktx:3.0.0-beta03"
+
+    // Fragment
+    implementation 'androidx.fragment:fragment-ktx:1.3.2'
+
+    // Timber
+    implementation 'com.jakewharton.timber:timber:4.7.1'
+}
+
+kapt {
+    correctErrorTypes true
+}
