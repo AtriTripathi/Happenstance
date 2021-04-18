@@ -18,8 +18,13 @@ class BreakingNewsViewModel @Inject constructor(
     private val repository: NewsRepository
 ) : ViewModel() {
 
+    private val eventChannel = Channel<Event>()
+    val events = eventChannel.receiveAsFlow()
+
     private val refreshTriggerChannel = Channel<Unit>()
     private val refreshTrigger = refreshTriggerChannel.receiveAsFlow()
+
+    var pendingScrollToTopAfterRefresh = false
 
     /**
      * I used `stateIn()` operator to convert the "cold" channelFlow into a "hot" stateFlow
@@ -31,7 +36,14 @@ class BreakingNewsViewModel @Inject constructor(
      * needed, because `getBreakingNews()` performs a network call which can be resource intensive.
      */
     val breakingNews = refreshTrigger.flatMapLatest {
-        repository.getBreakingNews()
+        repository.getBreakingNews(
+            onFetchSuccess = {
+                pendingScrollToTopAfterRefresh = true
+            },
+            onFetchFailed = { t ->
+                viewModelScope.launch { eventChannel.send(Event.ShowErrorMessage(t)) }
+            }
+        )
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     fun onStart() {
@@ -44,11 +56,15 @@ class BreakingNewsViewModel @Inject constructor(
     }
 
     fun onManualRefresh() {
-        // Only execute a retry, if the data isn't already being loaded.
+        // This check is to prevent from cancelling any previous refresh event.
         if (breakingNews.value !is Resource.Loading) {
             viewModelScope.launch {
                 refreshTriggerChannel.send(Unit)
             }
         }
+    }
+
+    sealed class Event {
+        data class ShowErrorMessage(val error: Throwable) : Event()
     }
 }

@@ -11,7 +11,9 @@ inline fun <ResultType, RequestType> networkBoundResource(
     crossinline query: () -> Flow<ResultType>,  // ResultType from DB will be a list of `NewsArticle`.
     crossinline fetch: suspend () -> RequestType,   // RequestType from network will be a list of `NewsArticleDto`.
     crossinline saveFetchResult: suspend (RequestType) -> Unit, // Save the network fetch into the DB.
-    crossinline shouldFetch: (ResultType) -> Boolean = { true } // Fetch from network based on staleness of data in DB
+    crossinline shouldFetch: (ResultType) -> Boolean = { true }, // Fetch from network based on staleness of data in DB
+    crossinline onFetchSuccess: () -> Unit = { },
+    crossinline onFetchFailed: (Throwable) -> Unit = { }
 ) = channelFlow {
 
     // This will only get a single value(List<NewsArticle>) from the DB and then stop collecting
@@ -32,9 +34,11 @@ inline fun <ResultType, RequestType> networkBoundResource(
         try {   // If network fetch was successful
             delay(2000)     // Just to see progress bar for testing.
             saveFetchResult(fetch())    // Save the network fetch results into the DB.
+            onFetchSuccess()
             loading.cancel()    // Cancel the loading coroutine.
             query().collect { send(Resource.Success(it)) }  // Emit `Success` state with data.
         } catch (t: Throwable) {    // Else if unsuccessful
+            onFetchFailed(t)
             loading.cancel()    // Cancel the loading coroutine.
             query().collect { send(Resource.Error(t, it)) } // Emit `Error` state with data.
         }

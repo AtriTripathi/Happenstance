@@ -5,6 +5,8 @@ import com.atritripathi.happenstance.api.NewsApi
 import com.atritripathi.happenstance.util.Resource
 import com.atritripathi.happenstance.util.networkBoundResource
 import kotlinx.coroutines.flow.Flow
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 class NewsRepository @Inject constructor(
@@ -13,7 +15,10 @@ class NewsRepository @Inject constructor(
 ) {
     private val newsArticleDao = newsDb.newsArticleDao()
 
-    fun getBreakingNews(): Flow<Resource<List<NewsArticle>>> = networkBoundResource(
+    fun getBreakingNews(
+        onFetchSuccess: () -> Unit,
+        onFetchFailed: (Throwable) -> Unit
+    ): Flow<Resource<List<NewsArticle>>> = networkBoundResource(
         query = {
             newsArticleDao.getAllBreakingNewsArticles()
         },
@@ -43,6 +48,15 @@ class NewsRepository @Inject constructor(
                     insertBreakingNews(breakingNews)
                 }
             }
+        },
+        onFetchSuccess = onFetchSuccess,
+        onFetchFailed = { t ->
+            if (t !is HttpException && t !is IOException) {
+                // We explicitly want to crash the app, cause this error isn't expected
+                // and can potentially leave the app in an unexpected state.
+                throw t
+            }
+            onFetchFailed(t)
         }
     )
 }
