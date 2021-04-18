@@ -3,15 +3,23 @@ package com.atritripathi.happenstance.features.breakingnews
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atritripathi.happenstance.data.NewsRepository
+import com.atritripathi.happenstance.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class BreakingNewsViewModel @Inject constructor(
     private val repository: NewsRepository
 ) : ViewModel() {
+
+    private val refreshTriggerChannel = Channel<Unit>()
+    private val refreshTrigger = refreshTriggerChannel.receiveAsFlow()
 
     /**
      * I used `stateIn()` operator to convert the "cold" channelFlow into a "hot" stateFlow
@@ -22,7 +30,25 @@ class BreakingNewsViewModel @Inject constructor(
      * passed as a parameter. I'm also using `Lazily` to start collecting the data only when it's
      * needed, because `getBreakingNews()` performs a network call which can be resource intensive.
      */
-    val breakingNews = repository.getBreakingNews()
-        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+    val breakingNews = refreshTrigger.flatMapLatest {
+        repository.getBreakingNews()
+    }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
+    fun onStart() {
+        // Only execute a retry, if the data isn't already being loaded.
+        if (breakingNews.value !is Resource.Loading) {
+            viewModelScope.launch {
+                refreshTriggerChannel.send(Unit)
+            }
+        }
+    }
+
+    fun onManualRefresh() {
+        // Only execute a retry, if the data isn't already being loaded.
+        if (breakingNews.value !is Resource.Loading) {
+            viewModelScope.launch {
+                refreshTriggerChannel.send(Unit)
+            }
+        }
+    }
 }

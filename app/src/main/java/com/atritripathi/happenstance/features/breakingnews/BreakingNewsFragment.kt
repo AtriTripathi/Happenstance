@@ -50,6 +50,19 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news) {
                 }
             }
 
+            swipeRefreshLayout.setOnRefreshListener {
+                viewModel.onManualRefresh()
+            }
+
+            btnRetry.setOnClickListener {
+                viewModel.onManualRefresh()
+            }
+
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.onStart()
     }
 }
