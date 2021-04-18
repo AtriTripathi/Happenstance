@@ -16,4 +16,6 @@
     <string name="no_results_found">No results found</string>
     <string name="search_instructions">Tap the magnifying glass to start searching</string>
     <string name="delete_all_bookmarks">Delete all bookmarks</string>
+    <string name="news_thumbnail_image">News thumbnail image</string>
+    <string name="bookmark_button">Bookmark button</string>
 </resources>
