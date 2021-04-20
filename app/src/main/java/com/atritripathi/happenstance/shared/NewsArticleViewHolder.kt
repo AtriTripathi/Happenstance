@@ -8,7 +8,9 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 
 class NewsArticleViewHolder(
-    private val binding: ItemNewsArticleBinding
+    private val binding: ItemNewsArticleBinding,
+    private val onItemClick: (Int) -> Unit,
+    private val onBookmarkClick: (Int) -> Unit,
 ) : RecyclerView.ViewHolder(binding.root) {
 
     fun bind(article: NewsArticle) {
@@ -26,6 +28,23 @@ class NewsArticleViewHolder(
                     false -> R.drawable.ic_bookmark_unselected
                 }
             )
+        }
+    }
+
+    init {
+        binding.apply {
+            root.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onItemClick(position)
+                }
+            }
+            ivBookmark.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onBookmarkClick(position)
+                }
+            }
         }
     }
 }

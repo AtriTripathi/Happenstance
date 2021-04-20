@@ -2,6 +2,7 @@ package com.atritripathi.happenstance.features.breakingnews
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atritripathi.happenstance.data.NewsArticle
 import com.atritripathi.happenstance.data.NewsRepository
 import com.atritripathi.happenstance.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,7 +23,7 @@ class BreakingNewsViewModel @Inject constructor(
     private val eventChannel = Channel<Event>()
     val events = eventChannel.receiveAsFlow()
 
-    private val refreshTriggerChannel = Channel<Unit>()
+    private val refreshTriggerChannel = Channel<Refresh>()
     private val refreshTrigger = refreshTriggerChannel.receiveAsFlow()
 
     var pendingScrollToTopAfterRefresh = false
@@ -35,8 +37,9 @@ class BreakingNewsViewModel @Inject constructor(
      * passed as a parameter. I'm also using `Lazily` to start collecting the data only when it's
      * needed, because `getBreakingNews()` performs a network call which can be resource intensive.
      */
-    val breakingNews = refreshTrigger.flatMapLatest {
+    val breakingNews = refreshTrigger.flatMapLatest { refresh ->
         repository.getBreakingNews(
+            refresh == Refresh.FORCE,
             onFetchSuccess = {
                 pendingScrollToTopAfterRefresh = true
             },
@@ -46,11 +49,20 @@ class BreakingNewsViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
+    init {
+        viewModelScope.launch {
+            // Delete non-bookmarked older than 7 days from DB to save space.
+            repository.deleteNonBookmarkedArticlesOlderThan(
+                System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
+            )
+        }
+    }
+
     fun onStart() {
         // Only execute a retry, if the data isn't already being loaded.
         if (breakingNews.value !is Resource.Loading) {
             viewModelScope.launch {
-                refreshTriggerChannel.send(Unit)
+                refreshTriggerChannel.send(Refresh.NORMAL)
             }
         }
     }
@@ -59,9 +71,20 @@ class BreakingNewsViewModel @Inject constructor(
         // This check is to prevent from cancelling any previous refresh event.
         if (breakingNews.value !is Resource.Loading) {
             viewModelScope.launch {
-                refreshTriggerChannel.send(Unit)
+                refreshTriggerChannel.send(Refresh.FORCE)
             }
         }
+    }
+
+    fun onBookmarkToggle(article: NewsArticle) {
+        val updatedArticle = article.copy(isBookmarked = !article.isBookmarked)
+        viewModelScope.launch {
+            repository.updateArticle(updatedArticle)
+        }
+    }
+
+    enum class Refresh {
+        FORCE, NORMAL
     }
 
     sealed class Event {
