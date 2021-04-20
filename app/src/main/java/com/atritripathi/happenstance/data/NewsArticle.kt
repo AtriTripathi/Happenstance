@@ -39,3 +39,10 @@ data class BreakingNews(
     @ColumnInfo(name = "id")
     val id: Int = 0
 )
+
+@Entity(tableName = "search_results", primaryKeys = ["searchQuery", "articleUrl"])
+data class SearchResults(
+    val searchQuery: String,
+    val articleUrl: String,
+    val queryPosition: Int
+)
