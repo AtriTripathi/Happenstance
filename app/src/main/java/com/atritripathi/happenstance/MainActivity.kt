@@ -87,9 +87,20 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_bookmarks -> bookmarksFragment
                 else -> throw IllegalArgumentException("Unexpected itemId")
             }
-            selectFragment(fragment)
+
+            if (selectedFragment === fragment) {
+                if (fragment is OnBottomNavigationReselectedListener) {
+                    fragment.onBottomNavigationReselected()
+                }
+            } else {
+                selectFragment(fragment)
+            }
             true
         }
+    }
+
+    interface OnBottomNavigationReselectedListener {
+        fun onBottomNavigationReselected()
     }
 
     override fun onBackPressed() {

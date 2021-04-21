@@ -14,24 +14,33 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.atritripathi.happenstance.MainActivity.OnBottomNavigationReselectedListener
 import com.atritripathi.happenstance.R
 import com.atritripathi.happenstance.databinding.FragmentSearchNewsBinding
 import com.atritripathi.happenstance.util.onQueryTextSubmit
+import com.atritripathi.happenstance.util.showIfOrInvisible
+import com.atritripathi.happenstance.util.showSnackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 
 @AndroidEntryPoint
-class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
+class SearchNewsFragment : Fragment(R.layout.fragment_search_news),
+    OnBottomNavigationReselectedListener {
 
     private val viewModel: SearchNewsViewModel by viewModels()
+
+    private var _binding: FragmentSearchNewsBinding? = null
+    private val binding get() = _binding!!
 
     private lateinit var newsArticleAdapter: NewsArticlePagingAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val binding = FragmentSearchNewsBinding.bind(view)
+        _binding = FragmentSearchNewsBinding.bind(view)
 
         newsArticleAdapter = NewsArticlePagingAdapter(
             onItemClick = { article ->
@@ -56,14 +65,37 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
 
             viewLifecycleOwner.lifecycleScope.launchWhenStarted {
                 viewModel.searchResults.collectLatest { data ->
-                    tvInstructions.isVisible = false
-                    swipeRefreshLayout.isEnabled = true
-
                     newsArticleAdapter.submitData(data)
                 }
             }
 
-            swipeRefreshLayout.isEnabled = false
+            viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                viewModel.hasCurrentQuery.collect { hasCurrentQuery ->
+                    tvInstructions.isVisible = !hasCurrentQuery
+                    swipeRefreshLayout.isEnabled = hasCurrentQuery
+
+                    if (!hasCurrentQuery) {
+                        rvBreakingNews.isVisible = false
+                    }
+                }
+            }
+
+
+            viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                newsArticleAdapter.loadStateFlow
+                    .distinctUntilChangedBy { it.source.refresh }
+                    .filter { it.source.refresh is LoadState.NotLoading }
+                    .collect {
+                        if (viewModel.pendingScrollToTopAfterNewQuery) {
+                            rvBreakingNews.scrollToPosition(0)
+                            viewModel.pendingScrollToTopAfterNewQuery = false
+                        }
+                        if (viewModel.pendingScrollToTopAfterRefresh && it.mediator?.refresh is LoadState.NotLoading) {
+                            rvBreakingNews.scrollToPosition(0)
+                            viewModel.pendingScrollToTopAfterRefresh = false
+                        }
+                    }
+            }
 
             viewLifecycleOwner.lifecycleScope.launchWhenStarted {
                 newsArticleAdapter.loadStateFlow.collect { loadState ->
@@ -73,7 +105,13 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
                             btnRetry.isVisible = false
                             swipeRefreshLayout.isRefreshing = true
                             tvNoResults.isVisible = false
-                            rvBreakingNews.isVisible = newsArticleAdapter.itemCount > 0
+
+                            rvBreakingNews.showIfOrInvisible {
+                                !viewModel.newQueryInProgress && newsArticleAdapter.itemCount > 0
+                            }
+
+                            viewModel.refreshInProgress = true
+                            viewModel.pendingScrollToTopAfterRefresh = true
                         }
                         is LoadState.NotLoading -> {
                             tvError.isVisible = false
@@ -86,6 +124,9 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
                                     && loadState.source.append.endOfPaginationReached
 
                             tvNoResults.isVisible = noResults
+
+                            viewModel.refreshInProgress = false
+                            viewModel.newQueryInProgress = false
                         }
                         is LoadState.Error -> {
                             swipeRefreshLayout.isRefreshing = false
@@ -104,6 +145,13 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
                                     ?: getString(R.string.unknown_error_occurred)
                             )
                             tvError.text = errorMessage
+
+                            if (viewModel.refreshInProgress) {
+                                showSnackbar(errorMessage)
+                            }
+                            viewModel.refreshInProgress = false
+                            viewModel.pendingScrollToTopAfterRefresh = false
+                            viewModel.newQueryInProgress = false
                         }
                     }
                 }
@@ -134,10 +182,20 @@ class SearchNewsFragment : Fragment(R.layout.fragment_search_news) {
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.action_search -> {
+        R.id.action_refresh -> {
             newsArticleAdapter.refresh()
             true
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onBottomNavigationReselected() {
+        binding.rvBreakingNews.scrollToPosition(0)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding.rvBreakingNews.adapter = null
+        _binding = null
     }
 }

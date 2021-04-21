@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.atritripathi.happenstance.MainActivity.OnBottomNavigationReselectedListener
 import com.atritripathi.happenstance.R
 import com.atritripathi.happenstance.databinding.FragmentBookmarksBinding
 import com.atritripathi.happenstance.shared.NewsArticleListAdapter
@@ -19,14 +20,18 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 
 @AndroidEntryPoint
-class BookmarksFragment : Fragment(R.layout.fragment_bookmarks) {
+class BookmarksFragment : Fragment(R.layout.fragment_bookmarks),
+    OnBottomNavigationReselectedListener {
 
     private val viewModel: BookmarksViewModel by viewModels()
+
+    private var _binding: FragmentBookmarksBinding? = null
+    private val binding get() = _binding!!
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val binding = FragmentBookmarksBinding.bind(view)
+        _binding = FragmentBookmarksBinding.bind(view)
 
         val bookmarksAdapter = NewsArticleListAdapter(
             onItemClick = { article ->
@@ -70,5 +75,14 @@ class BookmarksFragment : Fragment(R.layout.fragment_bookmarks) {
             true
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onBottomNavigationReselected() {
+        binding.rvBookmarks.scrollToPosition(0)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

@@ -1,6 +1,8 @@
 package com.atritripathi.happenstance.util
 
 import android.view.View
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
@@ -11,6 +13,10 @@ fun Fragment.showSnackbar(
     view: View = requireView()
 ) {
     Snackbar.make(view, message, duration).show()
+}
+
+inline fun <T : View> T.showIfOrInvisible(predicate: (T) -> Boolean) {
+    visibility = if (predicate(this)) VISIBLE else INVISIBLE
 }
 
 inline fun SearchView.onQueryTextSubmit(crossinline listener: (String) -> Unit) {
