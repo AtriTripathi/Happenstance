@@ -3,7 +3,6 @@ package com.atritripathi.happenstance.features.searchnews
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
-import androidx.recyclerview.widget.ListAdapter
 import com.atritripathi.happenstance.data.NewsArticle
 import com.atritripathi.happenstance.databinding.ItemNewsArticleBinding
 import com.atritripathi.happenstance.shared.NewsArticleComparator

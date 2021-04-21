@@ -4,9 +4,10 @@ import androidx.paging.LoadType
 import androidx.paging.LoadType.*
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
+import androidx.paging.RemoteMediator.InitializeAction.LAUNCH_INITIAL_REFRESH
+import androidx.paging.RemoteMediator.InitializeAction.SKIP_INITIAL_REFRESH
 import androidx.room.withTransaction
 import com.atritripathi.happenstance.api.NewsApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import retrofit2.HttpException
 import java.io.IOException
@@ -16,7 +17,8 @@ private const val NEWS_STARTING_PAGE_INDEX = 1
 class SearchNewsRemoteMediator(
     private val searchQuery: String,
     private val newsApi: NewsApi,
-    private val newsDb: NewsDatabase
+    private val newsDb: NewsDatabase,
+    private val refreshOnInit: Boolean
 ) : RemoteMediator<Int, NewsArticle>() {
 
     private val newsArticleDao = newsDb.newsArticleDao()
@@ -34,7 +36,6 @@ class SearchNewsRemoteMediator(
 
         try {
             val response = newsApi.searchNews(searchQuery, page, state.config.pageSize)
-            delay(3000)     // Artificial delay for testing
             val serverSearchResults = response.articles
 
             val bookmarkedArticles = newsArticleDao.getAllBookmarkedArticles().first()
@@ -77,4 +78,8 @@ class SearchNewsRemoteMediator(
             return MediatorResult.Error(exception)
         }
     }
+
+    override suspend fun initialize() =
+        if (refreshOnInit) LAUNCH_INITIAL_REFRESH else SKIP_INITIAL_REFRESH
+
 }

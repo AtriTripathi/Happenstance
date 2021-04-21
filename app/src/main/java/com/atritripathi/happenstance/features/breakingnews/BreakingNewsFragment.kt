@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
 import com.atritripathi.happenstance.MainActivity.OnBottomNavigationReselectedListener
 import com.atritripathi.happenstance.R
 import com.atritripathi.happenstance.databinding.FragmentBreakingNewsBinding
@@ -46,6 +47,8 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
                 viewModel.onBookmarkToggle(article)
             }
         )
+
+        newsArticleAdapter.stateRestorationPolicy = PREVENT_WHEN_EMPTY
 
         binding.apply {
             rvBreakingNews.apply {

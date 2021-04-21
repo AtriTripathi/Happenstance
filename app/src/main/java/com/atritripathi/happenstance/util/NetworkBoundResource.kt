@@ -1,6 +1,5 @@
 package com.atritripathi.happenstance.util
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
@@ -32,7 +31,6 @@ inline fun <ResultType, RequestType> networkBoundResource(
         }
 
         try {   // If network fetch was successful
-            delay(2000)     // Just to see progress bar for testing.
             saveFetchResult(fetch())    // Save the network fetch results into the DB.
             onFetchSuccess()
             loading.cancel()    // Cancel the loading coroutine.
