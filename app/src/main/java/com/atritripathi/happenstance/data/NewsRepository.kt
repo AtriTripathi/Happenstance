@@ -1,5 +1,8 @@
 package com.atritripathi.happenstance.data
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import androidx.room.withTransaction
 import com.atritripathi.happenstance.api.NewsApi
 import com.atritripathi.happenstance.util.Resource
@@ -82,6 +85,13 @@ class NewsRepository @Inject constructor(
             onFetchFailed(t)
         }
     )
+
+    fun getSearchResultsPaged(query: String): Flow<PagingData<NewsArticle>> =
+        Pager(
+            config = PagingConfig(pageSize = 20, maxSize = 200),
+            remoteMediator = SearchNewsRemoteMediator(query, newsApi, newsDb),
+            pagingSourceFactory = { newsArticleDao.getSearchResultArticlesPaged(query) }
+        ).flow
 
     fun getAllBookmarkedArticles(): Flow<List<NewsArticle>> =
         newsArticleDao.getAllBookmarkedArticles()

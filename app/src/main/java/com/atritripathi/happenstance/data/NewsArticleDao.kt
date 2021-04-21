@@ -1,5 +1,6 @@
 package com.atritripathi.happenstance.data
 
+import androidx.paging.PagingSource
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
@@ -8,6 +9,13 @@ interface NewsArticleDao {
 
     @Query("SELECT * FROM breaking_news INNER JOIN news_articles ON articleUrl = url")
     fun getAllBreakingNewsArticles(): Flow<List<NewsArticle>>
+
+    @Query(
+        """ SELECT * FROM search_results 
+                 INNER JOIN news_articles ON articleUrl = url
+                 WHERE searchQuery = :query ORDER BY queryPosition"""
+    )
+    fun getSearchResultArticlesPaged(query: String): PagingSource<Int, NewsArticle>
 
     @Query("SELECT * FROM news_articles WHERE isBookmarked = 1")
     fun getAllBookmarkedArticles(): Flow<List<NewsArticle>>
@@ -22,7 +30,7 @@ interface NewsArticleDao {
     suspend fun insertBreakingNews(breakingNews: List<BreakingNews>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSearchResults(searchResults: List<SearchResults>)
+    suspend fun insertSearchResults(searchResults: List<SearchResult>)
 
     @Update
     suspend fun updateArticle(article: NewsArticle)
@@ -31,7 +39,7 @@ interface NewsArticleDao {
     suspend fun resetAllBookmarks()
 
     @Query("DELETE FROM search_results WHERE searchQuery = :query")
-    suspend fun deleteSearchResultsForQuery(query: Query)
+    suspend fun deleteSearchResultsForQuery(query: String)
 
     @Query("DELETE FROM breaking_news")
     suspend fun deleteAllBreakingNews()
